@@ -1,6 +1,7 @@
-# LabVIEW VI to Ghidra
+# LabVIEW to Ghidra
 
-Create a Ghidra project from one compiled LabVIEW VI. The tool decodes the VI,
+Tools for analyzing LabVIEW files in Ghidra. The current converter creates a
+Ghidra project from one compiled LabVIEW VI. It decodes the VI,
 restores supported relocations and callbacks, imports saved metadata, and
 verifies the project after saving and exporting it as a portable GZF file.
 Analysis is static. The input VI and LabVIEW runtime are read as files.
@@ -63,6 +64,10 @@ Open `project/VIAnalysis.gpr` together with its `.rep` directory, or import
 `analysis.gzf` into another Ghidra project. Keep the whole output directory if
 using the companion state-view command or reproducing the analysis.
 
+`--embed-vi` also embeds an exact copy of the input VI in the Ghidra project.
+The default omits that copy. `result.json` and `plan.json` record the choice in
+`original_vi_embedded` and retain the input SHA-256 in either mode.
+
 `--prepare-only` decodes the VI and writes validated plans without starting
 Ghidra. An unresolved relocation stops conversion by default.
 `--allow-unresolved` explicitly permits a project with unresolved references
@@ -76,20 +81,36 @@ converter/state-view jobs are refused while another job is running.
 ## Preserved information
 
 The Ghidra project contains relocated native code, recognized callback names,
-verified runtime targets and decompiler output where available. It also embeds
-the original VI, decoded VI XML and available front-panel XML in read-only,
-non-executable blocks at clearly marked artificial addresses.
+verified runtime targets and decompiler output where available. It embeds
+decoded VI XML and available front-panel XML in read-only, non-executable blocks
+at clearly marked artificial addresses. `--embed-vi` adds an `Original_VI` block.
+
+The imported code and types form an analysis view and cannot currently
+reconstruct a complete VI. The optional `Original_VI` block preserves the exact
+input bytes, including resources that have not been decoded or mapped into
+Ghidra. It makes the source available when moving a GZF and allows future
+decoders to revisit it. Exporting that block recovers the original file; edits
+to the analysis view do not update it. The archived VI is reference data and
+does not run or improve decompilation by itself.
+
+If you retain the original VI separately, the embedded copy is a convenience.
+A Ghidra project generated with `--embed-vi` carries the complete input file,
+including any data stored in it. Both modes retain decoded labels, defaults
+and other metadata, so omitting the VI copy does not anonymize the project.
+The source repository contains the converter and synthetic tests; input VIs
+and generated analysis projects are separate artifacts.
 
 Saved type descriptors, defaults, labels, control UIDs, connector numbers and
 SubVI link slots are searchable metadata. Supported native data-space fields
 are available in the Data Type Manager under `/LabVIEW/VI_metadata` and
 `/LabVIEW/Recorded_facts`. Computed packed layouts require agreement with every
-available independent DCO offset anchor. Handles and unknown internals remain
-opaque.
+available DCO offset anchor. VIs without DCO records can use the narrowly
+supported initialization record when three independent offset/type-map pairs
+and their table shapes agree. Handles and unknown internals remain opaque.
 
 Plans, relocation records, exact commands, source snapshots, SHA-256 manifests
 and stage audits accompany the project. Reopening and GZF reimport verify
-native bytes, original resource archives and their permissions, imported
+native bytes, embedded resource archives and their permissions, imported
 metadata, types, annotations and supported dispatcher state tables.
 
 Saved defaults are recorded values, not current runtime memory. Saved SubVI
@@ -108,9 +129,10 @@ vi-state-views /path/to/analysis/plan.json --states 12,13 --ghidra /path/to/ghid
 
 Omit `--states` for a small sample, or use `--states all` for every entry.
 Each view has assembly output and, when decompilation succeeds, a paired C file.
-These are analysis fragments, not separate native functions. Unknown runtime prototypes can hide arguments
-in the C output; consult the assembly. Use `LV_state_NNNN` labels for original
-state indices because displayed switch-case numbers can differ.
+These are analysis fragments, not separate native functions. Unknown runtime
+prototypes can hide arguments in the C output; consult the assembly. Use
+`LV_state_NNNN` labels for original state indices because displayed switch-case
+numbers can differ.
 
 ## Tests
 
@@ -156,7 +178,8 @@ follow the pinned decoder's big-endian heap convention. Unsigned 64-bit values
 above Java's signed-long range remain decoded facts without enum import.
 
 Some unsupported type encodings and missing offset anchors leave an anchored
-layout unavailable. Explicit metadata and the original VI remain preserved.
+layout unavailable. Explicit metadata remains preserved. Use `--embed-vi` to
+retain the complete original VI inside the project.
 Some control writes have no unique verified native call frame. Some relocated
 calls can remain undisassembled. Complete large-function decompilation, native
 ABI recovery and dynamic instance bindings remain separate analysis tasks.

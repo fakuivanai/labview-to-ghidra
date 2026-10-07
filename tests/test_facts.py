@@ -108,7 +108,7 @@ class LayoutTests(unittest.TestCase):
     def test_layout_without_anchor_is_unresolved(self):
         facts = self.extract_root(native_root('MeasureData', 16, 'TimeStamp', anchors=False))
         self.assertEqual(facts['layout']['status'], 'unresolved')
-        self.assertEqual(facts['layout']['reasons'], ['No independent DCO offset anchors'])
+        self.assertEqual(facts['layout']['reasons'], ['No independent saved offset anchors'])
 
     def test_unknown_measure_flavor_retains_specific_reason(self):
         facts = self.extract_root(native_root('MeasureData', 16, 'DigitalWaveform'))

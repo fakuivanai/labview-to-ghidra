@@ -9,7 +9,7 @@ if __package__:
 else:
  from toolchain import validate_runtime
 def sha(b):return hashlib.sha256(b).hexdigest()
-def build(name,base=0x10000000,*,xml_path,vi_path,output_dir,runtime,runtime_map):
+def build(name,base=0x10000000,*,xml_path,vi_path,output_dir,runtime,runtime_map,embed_vi=False):
  x=Path(xml_path).resolve();d=x.parent;root=ET.parse(x).getroot()
  ver=root.find('./LVSR/Section/Version');assert ver.get('Major')=='13'
  sections=root.findall('./VICD/Section');assert len(sections)==1
@@ -44,15 +44,18 @@ def build(name,base=0x10000000,*,xml_path,vi_path,output_dir,runtime,runtime_map
   change(off,value,'runtime_rel32' if relative else 'runtime_abs32',idx,ident=ident,target=target,symbol=symbol,module=mod['name'])
  out=Path(output_dir).resolve();out.mkdir(parents=True,exist_ok=True)
  entries=json.loads(code.with_suffix('.entrypoints.json').read_text());entries=list({(e['name'],e['offset']):e for e in entries}.values())
+ original_vi=Path(vi_path).resolve();vi_data=original_vi.read_bytes()
  resources=[];resource_address=0x50000000;labels=set();paths=set()
- for label,p in [('Original_VI',Path(vi_path).resolve()),('VI_Metadata_XML',x)]+[('FrontPanel_XML',p.resolve()) for p in d.glob('*FPH*.xml')]:
+ archived=[('Original_VI',original_vi)] if embed_vi else []
+ archived+=[('VI_Metadata_XML',x)]+[('FrontPanel_XML',p.resolve()) for p in d.glob('*FPH*.xml')]
+ for label,p in archived:
   if label in labels or str(p) in paths:raise ValueError('Duplicate archived resource')
-  data=p.read_bytes();size=len(data)
+  data=vi_data if label=='Original_VI' else p.read_bytes();size=len(data)
   if not size or resource_address+size>=0x60000000:raise ValueError('Empty resource or resource archive exceeds its address range')
   labels.add(label);paths.add(str(p))
   resources.append({'label':label,'path':str(p),'sha256':sha(data),'size':size,'address':resource_address})
   resource_address=(resource_address+size+0xfffff)&~0xfffff
- plan={'schema':1,'vi':name,'source_xml':str(x),'code_path':str(code),'source_sha256':sha(original),'patched_sha256':sha(patched),'code_size':len(original),'base':base,'runtime':rt['runtime'],'runtime_sha256':rt['sha256'],'runtime_base':rt['image_base'],'patches':records,'changes':changes,'unresolved':unresolved,'targets':list(targets.values()),'entries':entries,'resources':resources,'scope':'analysis-only static import, not an executable VI'}
+ plan={'schema':1,'vi':name,'original_vi_embedded':bool(embed_vi),'original_vi_sha256':sha(vi_data),'source_xml':str(x),'code_path':str(code),'source_sha256':sha(original),'patched_sha256':sha(patched),'code_size':len(original),'base':base,'runtime':rt['runtime'],'runtime_sha256':rt['sha256'],'runtime_base':rt['image_base'],'patches':records,'changes':changes,'unresolved':unresolved,'targets':list(targets.values()),'entries':entries,'resources':resources,'scope':'analysis-only static import, not an executable VI'}
  (out/'plan.json').write_text(json.dumps(plan,indent=2));(out/'code.original.bin').write_bytes(original);(out/'code.relocated.bin').write_bytes(patched)
  # Invariants independently reconstruct each resolved reference from output bytes.
  for c in changes:

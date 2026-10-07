@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "labview-vi-to-ghidra"
+name = "labview-to-ghidra"
 version = "0.1.0"
 description = "Static LabVIEW 13 i386 VI import and metadata preservation in Ghidra"
 readme = "README.md"

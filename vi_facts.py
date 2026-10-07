@@ -1,5 +1,5 @@
 """Evidence-backed VI facts for Ghidra, not inferred runtime state.
-Native extents use an empirical LV13/i386 profile checked against recorded DCO
+Native extents use an empirical LV13/i386 profile checked against independent saved
 offsets. RSRC field meanings follow pinned pylabview, cited at the relevant rules.
 Unsupported layouts and sparse-value encodings are retained as unresolved.
 """
@@ -179,6 +179,70 @@ def constant_frames(code,plan):
   out.append(record)
  return out
 
+def dsinit_offset_anchors(root, layout, rows):
+    """Validate the known DSINIT prefix in a no-DCO 54-word record.
+
+    Only the primary TM80 slot 1 form is supported. The three suffix words and
+    the runtime semantics of its tables remain opaque. Every offset is checked;
+    neither a plausible size nor an unrelated 54-element array is an anchor.
+    """
+    # DSINIT's offset/TMI fields and low-24-bit TMI indexing follow:
+    # https://github.com/mefistotelis/pylabview/blob/5f20e23de6a386021eb955c825cc43d221f09ff1/pylabview/LVparts.py#L207-L261
+    # https://github.com/mefistotelis/pylabview/blob/5f20e23de6a386021eb955c825cc43d221f09ff1/pylabview/LVblock.py#L5898-L5906
+    # The anchored LV13/i386 corpus consistently places DSINIT at TM80 slot 1.
+    # Require that position, exact saved shape and all three independent pairs.
+    if len(rows) < 2:
+        return []
+    source = rows[1]
+    td = layout.td(source['flat_id'])
+    children = td.findall('TypeDesc')
+    if td.get('Type') != 'RepeatedBlock' or td.get('NumRepeats') != '54' or len(children) != 1:
+        return []
+    child = children[0]
+    if child.get('TypeID') is None or layout.td(int(child.get('TypeID'))).get('Type') != 'NumInt32':
+        return []
+    fills = root.findall(f"DFDS/Section/DataFill[@TypeID='{source['type_id']}']")
+    if len(fills) > 1:
+        raise ValueError('Ambiguous primary DSINIT saved fill')
+    if not fills:
+        return []
+    repeated = fills[0].findall('RepeatedBlock')
+    if len(repeated) != 1:
+        return []
+    leaves = list(repeated[0])
+    if len(leaves) != 54 or any(leaf.tag != 'I32' or len(leaf) for leaf in leaves):
+        return []
+    values = [int(leaf.text) for leaf in leaves]
+    if values[6] != 0 or values[8] != -1:
+        return []
+    anchors = []
+    for table, count_field, offset_field, tmi_field in [
+        ('hilite', 0, 1, 2), ('probe', 3, 4, 5), ('VI parameter', 12, 13, 14)
+    ]:
+        count = values[count_field]
+        offset = values[offset_field]
+        index = values[tmi_field] & 0xffffff
+        if count <= 0 or offset < 0 or index >= len(rows):
+            raise ValueError('Incomplete DSINIT offset anchors: ' + table)
+        row = rows[index]
+        if offset != row['offset']:
+            raise ValueError('DSINIT offset anchor mismatch: ' + table)
+        desc = layout.desc(row['flat_id'])
+        if table == 'hilite':
+            valid = desc['kind'] == 'RepeatedBlock' and desc.get('count') == count and desc['size'] == 8 * count
+        elif table == 'probe':
+            valid = desc['kind'] == 'RepeatedBlock' and desc.get('count') == 2 * count and desc['size'] == 8 * count
+            if valid:
+                child = layout.desc(desc['children'][0]['id'])
+                valid = child['kind'] == 'NumInt32'
+        else:
+            valid = count == 1 and desc['kind'] == 'Cluster' and desc['size'] == 48 and len(desc.get('children', [])) == 12 and all(child['size'] == 4 for child in desc['children'])
+        if not valid:
+            raise ValueError('DSINIT table type/count mismatch: ' + table)
+        anchors.append(dict(kind='DSINIT_offset_tmi', table=table, source_type_id=source['type_id'], source_tm80_slot=1, count_field=count_field, offset_field=offset_field, tmi_field=tmi_field, type_id=row['type_id'], offset=offset))
+    return anchors
+
+
 def extract(xml_path,panel_path,out,plan=None):
  xml_path=Path(xml_path);out=Path(out);out.mkdir(parents=True,exist_ok=True);root=parse(xml_path).getroot();layout=Layout(root);dcos=dco_records(root);rows=[];types=[];controls=[];reasons=[];status='unresolved';anchors=[];extent=0
  version=root.find('LVSR/Section/Version');general=root.find('VICD/Section/General')
@@ -191,7 +255,8 @@ def extract(xml_path,panel_path,out,plan=None):
    if index<0 or off<0:continue
    if index>=len(rows) or rows[index]['offset']!=off:raise ValueError(f'DCO flag anchor mismatch: {v.get("dcoIndex")}')
    anchors.append(dict(dco=v['dcoIndex'],type_id=rows[index]['type_id'],offset=off))
-  if not anchors:raise ValueError('No independent DCO offset anchors')
+  if not anchors and not dcos:anchors=dsinit_offset_anchors(root,layout,rows)
+  if not anchors:raise ValueError('No independent saved offset anchors')
   types=list(layout.cache.values());status='anchored_profile'
  except (ValueError,KeyError,IndexError,TypeError) as exc:reasons.append(str(exc));types=[]
  # Control names are type-record labels, not a guessed front-panel UID join.
@@ -232,7 +297,7 @@ def extract(xml_path,panel_path,out,plan=None):
    struct.pack_into('<I',code,patch['offset'],patch['new'])
   if sha(code)!=plan['patched_sha256']:raise ValueError('Relocated code hash mismatch')
   calls=constant_frames(code,plan)
- data=dict(schema=1,profile='LV13_i386_packed_DS_empirical_v2',sources={str(xml_path):sha(xml_path.read_bytes())},layout=dict(status=status,reasons=reasons,extent=extent if status=='anchored_profile' else None,anchors=anchors,rows=rows if status=='anchored_profile' else [],types=types),controls=controls,rings=rings(root,panel_path,layout),links=links,offset_facts=facts,calls=calls,limitations=['Offsets outside explicit DCO records are computed under an empirical build-specific layout profile, checked against all available DCO anchors.','Opaque handle slots and waveform extents do not imply known pointee/internal layouts.','Saved defaults do not establish current runtime values.','Ring enums remain attached to front-panel UIDs; no automatic native field binding.','No new runtime function signatures or dynamic SubVI instance bindings are asserted.'])
+ data=dict(schema=1,profile='LV13_i386_packed_DS_empirical_v2',sources={str(xml_path):sha(xml_path.read_bytes())},layout=dict(status=status,reasons=reasons,extent=extent if status=='anchored_profile' else None,anchors=anchors,rows=rows if status=='anchored_profile' else [],types=types),controls=controls,rings=rings(root,panel_path,layout),links=links,offset_facts=facts,calls=calls,limitations=['Native offsets use an empirical build-specific layout profile checked against available independent saved DCO or DSINIT offset anchors.','Opaque handle slots and waveform extents do not imply known pointee/internal layouts.','Saved defaults do not establish current runtime values.','Ring enums remain attached to front-panel UIDs; no automatic native field binding.','No new runtime function signatures or dynamic SubVI instance bindings are asserted.'])
  if panel_path:data['sources'][str(panel_path)]=sha(Path(panel_path).read_bytes())
  if plan:data.update(base=plan['base'],code_size=plan['code_size'],patched_sha256=plan['patched_sha256'],dispatchers=plan['dispatchers'],relocation_plan=str(out/'plan.json'))
  (out/'facts.json').write_text(json.dumps(data,indent=2,ensure_ascii=True));return data

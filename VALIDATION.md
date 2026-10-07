@@ -6,11 +6,14 @@ validate runtime behavior.
 
 ## Public fixtures
 
-The package has 40 synthetic Python tests. They cover dispatcher recognition,
+The package has 54 synthetic Python tests. They cover dispatcher recognition,
 metadata extraction, native layout anchors, timestamp/extended-float extents,
 signed/wider ring values, malformed input, saved backend paths and state
-selection for small tables. All 40 passed against an installed wheel with
-Python 3.12 on Linux.
+selection for small tables, strict initialization-record identification, and
+optional original-VI embedding. Corrupted, duplicate and non-primary
+initialization records are rejected. Archive-selection and prepare-only CLI
+fixtures exercise both embedding modes and preserve the input hash in each.
+All 54 passed against an installed wheel with Python 3.12 on Linux.
 
 The synthetic resource-archive Ghidra check preserved three embedded archives
 through save and GZF reimport. Seven kinds of damaged, missing or incorrectly
@@ -31,22 +34,51 @@ an independent reopening of the saved project.
 ## Additional local coverage
 
 A non-redistributed collection of 984 VIs from the supported profile was used
-for metadata/layout regression checks. Of these, 983 have an anchored native
-layout. All 10,116 available DCO offset anchors agree with their inferred fields.
+for metadata/layout regression checks. All 984 have an anchored native layout.
+All 10,116 available DCO offset anchors agree with their inferred fields.
 The 925 previously supported layouts are unchanged. Timestamp and extended-float
 support added 58 layouts and 1,017 matching anchors. All 30 ring records decode.
 
-The remaining VI has no independent offset anchor. Its metadata remains
-available, but the tool withholds an inferred layout. These counts describe
-layout coverage, not 984 complete Ghidra conversions. The collection is not part
-of the repository or required by the public tests.
+One VI has no front-panel DCO records. Its saved initialization record
+provides three independent offset/type-map pairs, with matching table types
+and counts. A fallback supports that exact form at primary TM80 slot 1 and
+requires a unique saved record. It activates once in this collection. All 983
+previously supported layouts retain their rows and DCO anchors.
+
+A separate format audit checked 2,488 saved initialization-record offset pairs
+across the collection and found no mismatches. Other same-length arrays are
+present, so length alone is never used to identify the initialization record.
+These counts describe layout coverage, not 984 complete Ghidra conversions.
+The collection is not part of the repository or required by the public tests.
 
 Three additional VIs completed fresh end-to-end conversions with no unresolved
 relocation records. They cover timestamps with Ghidra 12.1.4, extended floats
 with Ghidra 12.1.3, and signed ring values with Ghidra 12.1.3. Each conversion
 verified native code, embedded original files, metadata and supported facts
-after saving and GZF reimport. Both a normal Ghidra installation and the Flatpak
-backend were exercised. These private input files are not distributed.
+after saving and GZF reimport. Those runs included the original VI archive.
+Both a normal Ghidra installation and the Flatpak backend were exercised. These private input files are not distributed.
+
+The no-DCO VI also completed a fresh conversion with the Flatpak backend.
+Its three saved initialization-record anchors support an 804-byte native
+layout. Native code, both embedded resources, metadata and the six recorded
+native fields passed saving and GZF reimport checks.
+
+The installed wheel then converted that VI in both current modes. The default
+project preserved its one XML archive; `--embed-vi` preserved XML plus the exact
+original VI. Both projects passed native-code, metadata, facts and resource
+audits after saving and GZF reimport. Native code, function signatures, layout
+types and recorded bindings agreed across modes. Provenance hashes that include
+the separate output paths remain distinct.
+
+## Package review
+
+The wheel and source distribution contain matching Python and Java source, all
+six importer scripts, and both MIT license notices. The source distribution
+includes the synthetic tests. A manual review and filename/content pattern
+checks found no original application identifiers, personal machine paths,
+proprietary input files or generated analysis projects in the source, packages
+or fresh Git history. Common credential-pattern checks found no matches.
+A dedicated secret scanner was not used.
 
 ## Limits of the evidence
 
