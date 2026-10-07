@@ -27,6 +27,8 @@ Install Ghidra and configure its Java runtime using the
 Then install this package in a Python virtual environment:
 
 ```sh
+git clone https://github.com/fakuivanai/labview-to-ghidra.git
+cd labview-to-ghidra
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install .
@@ -202,6 +204,11 @@ ABI recovery and dynamic instance bindings remain separate analysis tasks.
 This package imports individual VIs. It does not reconstruct project-wide
 execution or recursively import other VIs. Compiled files cannot supply source
 or diagrams removed before distribution.
+
+## Security
+
+Use the private reporting form linked in [SECURITY.md](SECURITY.md) for suspected
+vulnerabilities.
 
 ## License and provenance
 

@@ -72,7 +72,7 @@ the separate output paths remain distinct.
 ## Package review
 
 The wheel and source distribution contain matching Python and Java source, all
-six importer scripts, and both MIT license notices. The source distribution
+six Ghidra scripts, and both MIT license notices. The source distribution
 includes the synthetic tests and contributor documentation.
 
 ## Local release-readiness review
@@ -84,12 +84,14 @@ All 54 tests, help commands for all three CLI tools, and `pip check` passed.
 Gitleaks 8.30.1 scanned the complete Git history with `--all` and the working
 tree, reporting zero findings in both. License text and package metadata agree.
 
-Before a public release, choose and configure a private security-reporting
-route, add CI covering the declared Python versions, and select lint and type
-checks. Dependency-update automation, hosted documentation, release tags and
-publishing settings also remain unset. This review did not publish a repository
-or package. Python 3.10 and other declared versions beyond 3.12 have not yet
-been tested.
+The repository has GitHub private vulnerability reporting enabled, with its
+reporting form documented in SECURITY.md. A GitHub Actions workflow installs
+the package, runs synthetic tests and checks distribution contents on Linux
+with Python 3.10 through 3.14. Its run status is available in the repository
+Actions tab. The local installation checks above cover Python 3.12.
+
+Dedicated lint and type checks, dependency-update automation, hosted
+documentation and package-release automation remain future work.
 
 ## Limits of the evidence
 

@@ -34,6 +34,15 @@ and distribution-build instructions, basic EditorConfig settings, and a
 version-specific Ghidra installation link. Revised README and validation
 wording. Recorded remaining release tasks without changing hosted settings.
 
+2026-10-07 publication preparation, Codex `gpt-6.1-sol`, reasoning effort
+`ultra`, chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+this turn's metadata. Created the GitHub repository at the maintainer's request,
+added SHA-pinned Linux CI for Python 3.10 through 3.14, and enabled GitHub private
+vulnerability reporting. Added SECURITY.md, updated installation and validation
+instructions, and prepared the default branch for the initial push. CI checks
+synthetic tests, dependency consistency, distribution contents and license
+notices. No runtime-dependent integration jobs were added.
+
 Use generated regression fixtures. Cite source permalinks when adapting decoder
 conventions and retain dependency license notices. Extend native layout rules
 only with independent offset anchors or equivalent format/build evidence.
