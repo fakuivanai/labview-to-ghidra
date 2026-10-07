@@ -33,7 +33,7 @@ an independent reopening of the saved project.
 
 ## Additional local coverage
 
-A non-redistributed collection of 984 VIs from the supported profile was used
+A collection of 984 VIs from the supported profile was used
 for metadata/layout regression checks. All 984 have an anchored native layout.
 All 10,116 available DCO offset anchors agree with their inferred fields.
 The 925 previously supported layouts are unchanged. Timestamp and extended-float
@@ -49,14 +49,13 @@ A separate format audit checked 2,488 saved initialization-record offset pairs
 across the collection and found no mismatches. Other same-length arrays are
 present, so length alone is never used to identify the initialization record.
 These counts describe layout coverage, not 984 complete Ghidra conversions.
-The collection is not part of the repository or required by the public tests.
 
 Three additional VIs completed fresh end-to-end conversions with no unresolved
 relocation records. They cover timestamps with Ghidra 12.1.4, extended floats
 with Ghidra 12.1.3, and signed ring values with Ghidra 12.1.3. Each conversion
 verified native code, embedded original files, metadata and supported facts
 after saving and GZF reimport. Those runs included the original VI archive.
-Both a normal Ghidra installation and the Flatpak backend were exercised. These private input files are not distributed.
+Both a normal Ghidra installation and the Flatpak backend were exercised.
 
 The no-DCO VI also completed a fresh conversion with the Flatpak backend.
 Its three saved initialization-record anchors support an 804-byte native
@@ -74,11 +73,23 @@ the separate output paths remain distinct.
 
 The wheel and source distribution contain matching Python and Java source, all
 six importer scripts, and both MIT license notices. The source distribution
-includes the synthetic tests. A manual review and filename/content pattern
-checks found no original application identifiers, personal machine paths,
-proprietary input files or generated analysis projects in the source, packages
-or fresh Git history. Common credential-pattern checks found no matches.
-A dedicated secret scanner was not used.
+includes the synthetic tests and contributor documentation.
+
+## Local release-readiness review
+
+The [Trail of Bits open-sourcing workflow](https://github.com/trailofbits/skills/blob/82fe8226252622fa807643bdca1710901198553a/plugins/open-sourcing/skills/open-sourcing/SKILL.md)
+was applied on 2026-10-07 with the generic organization profile. A clean clone
+installed using the README in a fresh Python 3.12.14 virtual environment.
+All 54 tests, help commands for all three CLI tools, and `pip check` passed.
+Gitleaks 8.30.1 scanned the complete Git history with `--all` and the working
+tree, reporting zero findings in both. License text and package metadata agree.
+
+Before a public release, choose and configure a private security-reporting
+route, add CI covering the declared Python versions, and select lint and type
+checks. Dependency-update automation, hosted documentation, release tags and
+publishing settings also remain unset. This review did not publish a repository
+or package. Python 3.10 and other declared versions beyond 3.12 have not yet
+been tested.
 
 ## Limits of the evidence
 

@@ -3,13 +3,12 @@
 2026-10-07, Codex `gpt-6.1-sol`, reasoning effort `ultra`, chat
 `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Model and effort were resolved from
 current-turn metadata. Prepared a standalone individual-VI converter for the
-explicit LabVIEW 13.0.0 / i386 profile. Replaced machine-specific configuration,
-added independent synthetic fixtures, investigated unsupported native extents
-and sparse ring encodings, and strengthened source-resource preservation
+explicit LabVIEW 13.0.0 / i386 profile. Added independent synthetic fixtures,
+investigated unsupported native extents and sparse ring encodings, and strengthened source-resource preservation
 checks. Retained input resources and analysis provenance remain separate from
 runtime-state claims. Validated 40 public unit tests, three fresh VI conversions,
-and synthetic Ghidra resource, facts and state-export checks. Validation and remaining limits
-are documented in README and VALIDATION.md. Prepared and committed a local
+and synthetic Ghidra resource, facts and state-export checks. Validation and
+remaining limits are documented in README and VALIDATION.md. Prepared and committed a local
 repository; publication remains deferred at the user's request.
 
 2026-10-07 follow-up, Codex `gpt-6.1-sol`, reasoning effort `ultra`, chat
@@ -26,7 +25,15 @@ checks for the no-DCO VI with and without full VI embedding. Reviewed source,
 packages, Git history, licensing and provenance for local release preparation.
 Recorded evidence in VALIDATION.md. Kept the repository local with no remote.
 
-Keep examples and tests independent of any particular application. Cite source
-permalinks when adapting decoder conventions. Do not include runtime binaries
-or proprietary VI inputs in this repository. Extend native layout rules only
-with independent offset anchors or equivalent format/build evidence.
+2026-10-07 release-readiness review, Codex `gpt-6.1-sol`, reasoning effort
+`ultra`, chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort
+from this turn's metadata. Applied the open-sourcing workflow's local checks,
+including clean-clone installation, 54 unit tests, CLI and dependency checks,
+and Gitleaks scans of all Git history and the working tree. Added contributor
+and distribution-build instructions, basic EditorConfig settings, and a
+version-specific Ghidra installation link. Revised README and validation
+wording. Recorded remaining release tasks without changing hosted settings.
+
+Use generated regression fixtures. Cite source permalinks when adapting decoder
+conventions and retain dependency license notices. Extend native layout rules
+only with independent offset anchors or equivalent format/build evidence.

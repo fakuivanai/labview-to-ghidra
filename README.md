@@ -18,12 +18,12 @@ Analysis is static. The input VI and LabVIEW runtime are read as files.
   with an older processor-language version may require regeneration.
 
 The input must be an individual RSRC VI with a supported compiled code section.
-Other profiles are rejected. Obtain the supported runtime separately; this
-repository contains no runtime binaries or example application files.
+Other profiles are rejected. Obtain the supported runtime separately.
 
 ## Install
 
-Install Ghidra and configure its Java runtime according to its own instructions.
+Install Ghidra and configure its Java runtime using the
+[official installation instructions for Ghidra 12.1.4](https://github.com/NationalSecurityAgency/ghidra/blob/Ghidra_12.1.4_build/README.md#install).
 Then install this package in a Python virtual environment:
 
 ```sh
@@ -57,7 +57,7 @@ vi-to-ghidra /path/to/example.vi \
 ```
 
 `GHIDRA_HOME` or `analyzeHeadless` on `PATH` can supply the Ghidra installation.
-The existing Flatpak installation is an alternative with `--ghidra flatpak`.
+The Flatpak app `org.ghidra_sre.Ghidra` is an alternative with `--ghidra flatpak`.
 `python -m labview_vi_to_ghidra` runs the same converter.
 
 Open `project/VIAnalysis.gpr` together with its `.rep` directory, or import
@@ -96,9 +96,7 @@ does not run or improve decompilation by itself.
 If you retain the original VI separately, the embedded copy is a convenience.
 A Ghidra project generated with `--embed-vi` carries the complete input file,
 including any data stored in it. Both modes retain decoded labels, defaults
-and other metadata, so omitting the VI copy does not anonymize the project.
-The source repository contains the converter and synthetic tests; input VIs
-and generated analysis projects are separate artifacts.
+and other metadata.
 
 Saved type descriptors, defaults, labels, control UIDs, connector numbers and
 SubVI link slots are searchable metadata. Supported native data-space fields
@@ -169,6 +167,23 @@ python tests/check_state_views.py \
 ```
 
 The checks and their coverage are recorded in [VALIDATION.md](VALIDATION.md).
+
+## Contribute and build
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks and fixture
+guidance. The command-line tools are the documented interface. Python modules
+and JSON schemas are experimental.
+
+To build a wheel and source distribution from the repository root:
+
+```sh
+python -m pip install build
+python -m build
+```
+
+The distributions are written to `dist/`. Build dependencies can change within
+the constraints in `pyproject.toml`; byte-identical distribution builds are not
+currently guaranteed.
 
 ## Remaining boundaries
 
