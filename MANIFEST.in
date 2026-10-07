@@ -1,0 +1,3 @@
+include README.md VALIDATION.md LICENSE FROM_AGENTS_TO_AGENTS.md
+recursive-include licenses *.txt
+recursive-include tests *.py *.java

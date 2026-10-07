@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labview-vi-to-ghidra"
+version = "0.1.0"
+description = "Static LabVIEW 13 i386 VI import and metadata preservation in Ghidra"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = ["Operating System :: POSIX :: Linux"]
+license = "MIT"
+license-files = ["LICENSE", "licenses/pylabview-MIT.txt"]
+dependencies = [
+  "pylabview @ git+https://github.com/mefistotelis/pylabview.git@5f20e23de6a386021eb955c825cc43d221f09ff1",
+  "capstone==5.0.9",
+  "pefile==2024.8.26",
+  "Pillow==12.3.0",
+]
+
+[project.scripts]
+vi-to-ghidra = "labview_vi_to_ghidra.vi_to_ghidra:main"
+vi-state-views = "labview_vi_to_ghidra.vi_state_views:main"
+vi-runtime-map = "labview_vi_to_ghidra.recover_callbacks:main"
+
+[tool.setuptools]
+packages = ["labview_vi_to_ghidra"]
+
+[tool.setuptools.package-dir]
+labview_vi_to_ghidra = "."
+
+[tool.setuptools.package-data]
+labview_vi_to_ghidra = ["*.java"]
