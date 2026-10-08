@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import subprocess
 
+from labview_vi_to_ghidra.toolchain import GHIDRA_SCRIPT_DIRECTORY, snapshot_ghidra_scripts
+
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -20,15 +22,12 @@ def main():
     if output.exists() and any(output.iterdir()):
         parser.error('Output must be new or empty')
     output.mkdir(parents=True, exist_ok=True)
-    sources = Path(__file__).resolve().parents[1]
     scripts = output / 'scripts'
-    scripts.mkdir()
-    names = {}
-    for source in [sources / 'ImportLabVIEW13.java', sources / 'ValidateExportLabVIEW13.java', sources / 'tests/TestResourceArchives.java']:
-        text = source.read_text()
-        name = source.stem + '_' + digest(source.read_bytes())[:12]
-        (scripts / (name + '.java')).write_text(text.replace('public class ' + source.stem + ' ', 'public class ' + name + ' '))
-        names[source.stem] = name + '.java'
+    names = snapshot_ghidra_scripts(scripts, [
+        GHIDRA_SCRIPT_DIRECTORY / 'ImportLabVIEW13.java',
+        GHIDRA_SCRIPT_DIRECTORY / 'ValidateExportLabVIEW13.java',
+        Path(__file__).resolve().with_name('TestResourceArchives.java'),
+    ])
     code = b'\xc3' + b'\x90' * 63
     (output / 'native-code.bin').write_bytes(code)
     runtime = output / 'runtime.bin'

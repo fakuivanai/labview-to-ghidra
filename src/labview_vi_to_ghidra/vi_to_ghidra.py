@@ -6,15 +6,14 @@ https://github.com/mefistotelis/pylabview/blob/5f20e23de6a386021eb955c825cc43d22
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,sys,xml.etree.ElementTree as ET
-W=Path(__file__).resolve().parent
 if __package__:
- from .toolchain import acquire_job,analysis_environment,ghidra_backend,resolve_ghidra_installation,validate_runtime
+ from .toolchain import GHIDRA_SCRIPT_DIRECTORY,acquire_job,analysis_environment,ghidra_backend,resolve_ghidra_installation,snapshot_ghidra_scripts,snapshot_hashes,validate_runtime
  from .make_ghidra_bundle import build
  from .vi_dispatch import scan,recognize_dispatchers
  from .vi_metadata import extract
  from .vi_facts import extract as extract_facts
 else:
- from toolchain import acquire_job,analysis_environment,ghidra_backend,resolve_ghidra_installation,validate_runtime
+ from toolchain import GHIDRA_SCRIPT_DIRECTORY,acquire_job,analysis_environment,ghidra_backend,resolve_ghidra_installation,snapshot_ghidra_scripts,snapshot_hashes,validate_runtime
  from make_ghidra_bundle import build
  from vi_dispatch import scan,recognize_dispatchers
  from vi_metadata import extract
@@ -60,6 +59,28 @@ def restore_entry(source,code):
   scan(raw[:len(b)],require=True)
   code.write_bytes(b[:40]+raw[40:44]+b[44:])
   (code.parent/'entry-restoration.json').write_text(json.dumps({'source_sha256':digest(source),'offset':40,'original_decoded':b[40:44].hex(),'restored_from_raw_VICD':raw[40:44].hex(),'jump_target':target,'remaining_code_matches_raw':True},indent=2))
+def snapshot_converter_sources(destination):
+    """Retain the standalone converter and its nested Java resources."""
+    destination = Path(destination)
+    destination.mkdir(parents=True, exist_ok=True)
+    source_directory = Path(__file__).resolve().parent
+    python_sources = (
+        '__init__.py', '__main__.py', 'toolchain.py', 'recover_callbacks.py',
+        'vi_to_ghidra.py', 'make_ghidra_bundle.py', 'vi_metadata.py',
+        'vi_dispatch.py', 'vi_facts.py',
+    )
+    for name in python_sources:
+        shutil.copy2(source_directory / name, destination / name)
+    java_sources = (
+        'ImportLabVIEW13.java', 'ImportVIMetadata.java', 'ValidateExportLabVIEW13.java',
+        'RecoverVIStateDispatch.java', 'ImportVIFacts.java',
+    )
+    names = snapshot_ghidra_scripts(
+        destination / 'ghidra', [GHIDRA_SCRIPT_DIRECTORY / name for name in java_sources]
+    )
+    return {original + '.java': renamed for original, renamed in names.items()}
+
+
 def main():
  ap=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
  ap.add_argument('vi',type=Path,help='path to one extracted RSRC VI')
@@ -83,12 +104,7 @@ def main():
  except (ValueError,OSError) as e:ap.error(str(e))
  out.mkdir(parents=True,exist_ok=True)
  (out/'runtime-map.json').write_text(json.dumps(runtime_info,indent=2))
- scripts=['__init__.py','__main__.py','toolchain.py','recover_callbacks.py','vi_to_ghidra.py','make_ghidra_bundle.py','vi_metadata.py','ImportLabVIEW13.java','ImportVIMetadata.java','ValidateExportLabVIEW13.java','vi_dispatch.py','RecoverVIStateDispatch.java','vi_facts.py','ImportVIFacts.java']
- snapshot=out/'reproduce';snapshot.mkdir()
- for name in scripts:shutil.copy2(W/name,snapshot/name)
- java_names={}
- for f in snapshot.glob('*.java'):
-  original=f.stem;renamed=original+'_'+digest(f)[:12];text=f.read_text().replace('public class '+original+' ', 'public class '+renamed+' ');(snapshot/(renamed+'.java')).write_text(text);java_names[original+'.java']=renamed+'.java'
+ snapshot=out/'reproduce';java_names=snapshot_converter_sources(snapshot)
  env=analysis_environment()
  (out/'resource-limits.json').write_text(json.dumps(resource_limits,indent=2))
  commands=[]
@@ -124,7 +140,7 @@ def main():
    head,env,tool_files=ghidra_backend(plan['ghidra_installation'],out,source=source,runtime=runtime)
    (out/'ghidra-version.txt').write_text(tool_files)
    common=head+[str(projects),'VIAnalysis']
-   script=['-max-cpu','1','-noanalysis','-scriptPath',str(snapshot)]
+   script=['-max-cpu','1','-noanalysis','-scriptPath',str(snapshot/'ghidra')]
    run('import',common+['-import',str(code),'-loader','BinaryLoader','-loader-baseAddr',hex(plan['base']),'-processor','x86:LE:32:default','-cspec','windows']+script+['-postScript','ImportLabVIEW13.java',str(out/'plan.json')],marker='failed=0')
    run('dispatch',common+['-process',code.name]+script+['-postScript','RecoverVIStateDispatch.java',str(out/'plan.json')],marker='VI_DISPATCH_OK')
    run('metadata',common+['-process',code.name]+script+['-postScript','ImportVIMetadata.java',str(out/'metadata.json')],marker='VI_METADATA_OK')
@@ -155,5 +171,5 @@ def main():
  finally:
   resource_lock.close()
   (out/'commands.json').write_text(json.dumps(commands,indent=2))
-  (out/'manifest.json').write_text(json.dumps({'inputs':{str(source):digest(source),str(runtime):digest(runtime),str(runtime_map):digest(runtime_map)},'scripts':{str(f):digest(f) for f in snapshot.iterdir() if f.is_file()},'outputs':{str(p.relative_to(out)):digest(p) for p in out.iterdir() if p.is_file() and p.name!='manifest.json'}},indent=2))
+  (out/'manifest.json').write_text(json.dumps({'inputs':{str(source):digest(source),str(runtime):digest(runtime),str(runtime_map):digest(runtime_map)},'scripts':snapshot_hashes(snapshot),'outputs':{str(p.relative_to(out)):digest(p) for p in out.iterdir() if p.is_file() and p.name!='manifest.json'}},indent=2))
 if __name__=='__main__':main()

@@ -3,11 +3,52 @@ from pathlib import Path
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 
 RUNTIME_SHA256 = "2dcb88ecdec6bac366530cb28fc760060a13def9da72ffb7ed2d35985101e74e"
 RUNTIME_VERSION = "13.0.0.4046"
+
+GHIDRA_SCRIPT_DIRECTORY = Path(__file__).resolve().parent / "ghidra"
+PUBLIC_CLASS_DECLARATION = re.compile(
+    rb"(?m)^[ \t]*public[ \t]+class[ \t]+(?P<name>[A-Za-z_$][A-Za-z0-9_$]*)\b"
+)
+
+
+def snapshot_ghidra_scripts(destination, source_paths):
+    """Keep original Java bytes and stage uniquely named Ghidra script classes.
+
+    Return original class stems mapped to their staged Java filenames. Each
+    source must declare one public class whose name matches its filename.
+    """
+    staged = []
+    names = {}
+    for source_path in source_paths:
+        source = Path(source_path)
+        data = source.read_bytes()
+        declarations = list(PUBLIC_CLASS_DECLARATION.finditer(data))
+        if len(declarations) != 1 or declarations[0].group("name").decode("ascii") != source.stem:
+            raise ValueError("Expected exactly one matching public class declaration: " + str(source))
+        if source.stem in names:
+            raise ValueError("Duplicate Ghidra script class: " + source.stem)
+        renamed = source.stem + "_" + hashlib.sha256(data).hexdigest()[:12]
+        declaration = declarations[0]
+        start, end = declaration.span("name")
+        renamed_data = data[:start] + renamed.encode("ascii") + data[end:]
+        names[source.stem] = renamed + ".java"
+        staged.append((source.name, data, renamed + ".java", renamed_data))
+    destination = Path(destination)
+    destination.mkdir(parents=True, exist_ok=True)
+    for original_name, data, renamed_name, renamed_data in staged:
+        (destination / original_name).write_bytes(data)
+        (destination / renamed_name).write_bytes(renamed_data)
+    return names
+
+
+def snapshot_hashes(directory):
+    """Hash every retained source, including nested Java resources."""
+    return {str(path): digest(path) for path in sorted(Path(directory).rglob("*")) if path.is_file()}
 
 
 def digest(path):

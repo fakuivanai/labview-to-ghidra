@@ -8,7 +8,9 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 from labview_vi_to_ghidra.vi_facts import extract
-from labview_vi_to_ghidra.toolchain import acquire_job, ghidra_backend
+from labview_vi_to_ghidra.toolchain import (
+    GHIDRA_SCRIPT_DIRECTORY, acquire_job, ghidra_backend, snapshot_ghidra_scripts,
+)
 
 
 def fixtures(output):
@@ -83,12 +85,9 @@ def main():
         raise RuntimeError('Synthetic rings were not decoded')
     if [[entry['value'] for entry in ring['entries']] for ring in facts['rings']] != [[-10, 0, 256], [65536, 4294967295]]:
         raise RuntimeError('Synthetic ring values changed')
-    import labview_vi_to_ghidra
-    source = Path(labview_vi_to_ghidra.__file__).parent / 'ImportVIFacts.java'
     scripts = output / 'scripts'
-    scripts.mkdir()
-    name = source.stem + '_' + hashlib.sha256(source.read_bytes()).hexdigest()[:12]
-    (scripts / (name + '.java')).write_text(source.read_text().replace('public class ' + source.stem + ' ', 'public class ' + name + ' '))
+    names = snapshot_ghidra_scripts(scripts, [GHIDRA_SCRIPT_DIRECTORY / 'ImportVIFacts.java'])
+    name = names['ImportVIFacts']
     head, environment, version = ghidra_backend(args.ghidra, output)
     (output / 'ghidra-version.txt').write_text(version)
     projects = output / 'projects'
@@ -107,11 +106,11 @@ def main():
     try:
         run('apply', head + [str(projects), 'Facts', '-import', str(native), '-loader', 'BinaryLoader',
                             '-loader-baseAddr', hex(plan['base']), '-processor', 'x86:LE:32:default', '-cspec', 'windows']
-            + flags + ['-postScript', name + '.java', str(output / 'facts.json')])
+            + flags + ['-postScript', name, str(output / 'facts.json')])
         run('export', head + [str(projects), 'Facts', '-process', native.name]
-            + flags + ['-postScript', name + '.java', str(output / 'facts.json'), 'export'])
+            + flags + ['-postScript', name, str(output / 'facts.json'), 'export'])
         run('roundtrip', head + [str(projects), 'FactsRoundTrip', '-import', str(output / 'analysis.gzf')]
-            + flags + ['-postScript', name + '.java', str(output / 'facts.json'), 'roundtrip'])
+            + flags + ['-postScript', name, str(output / 'facts.json'), 'roundtrip'])
         audits = [json.loads((output / ('facts-audit-' + mode + '.json')).read_text()) for mode in ['apply', 'export', 'roundtrip']]
         for key in audits[0]:
             if key != 'mode' and any(audit[key] != audits[0][key] for audit in audits[1:]):

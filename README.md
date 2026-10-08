@@ -148,7 +148,7 @@ export/reimport and requires corrupted, missing or incorrectly protected
 archives to be rejected:
 
 ```sh
-python tests/check_resource_archives.py \
+python tests/integration/check_resource_archives.py \
   --ghidra /path/to/ghidra --output /path/to/new-test-output
 ```
 
@@ -156,7 +156,7 @@ A second synthetic Ghidra check verifies opaque timestamp/extended-float
 extents and signed/wider ring values after saving and GZF reimport:
 
 ```sh
-python tests/check_facts.py \
+python tests/integration/check_facts.py \
   --ghidra /path/to/ghidra --output /path/to/new-facts-output
 ```
 
@@ -164,7 +164,7 @@ A three-state fixture verifies default fragment selection and checks that
 exporting state views preserves the saved program:
 
 ```sh
-python tests/check_state_views.py \
+python tests/integration/check_state_views.py \
   --ghidra /path/to/ghidra --output /path/to/new-state-output
 ```
 

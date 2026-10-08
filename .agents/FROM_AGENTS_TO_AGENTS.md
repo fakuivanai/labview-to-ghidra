@@ -46,3 +46,17 @@ notices. No runtime-dependent integration jobs were added.
 Use generated regression fixtures. Cite source permalinks when adapting decoder
 conventions and retain dependency license notices. Extend native layout rules
 only with independent offset anchors or equivalent format/build evidence.
+
+2026-10-08 repository layout, Codex `gpt-6.1-sol`, reasoning effort `ultra`,
+chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+current-turn metadata. Moved Python sources to the src package layout, Ghidra
+scripts into package resources, and integration drivers into tests/integration.
+Moved this edit record under .agents, outside distributions. Shared Java
+snapshot preparation now validates class declarations and retains nested
+resources in reproduction snapshots. Replaced CI's embedded distribution
+checker with a standalone tool. Added synthetic snapshot regression checks.
+Validation passed for 60 installed-wheel unit tests, all CLI help commands,
+distribution byte/license checks and a complete conversion through saved
+project and GZF reimport audits. The distribution verifier rejected nine
+damaged or incomplete package cases. CI syntax lint and the working-tree
+secret scan passed.

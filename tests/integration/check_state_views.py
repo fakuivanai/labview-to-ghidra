@@ -3,10 +3,11 @@
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,struct,subprocess,sys
 
-import labview_vi_to_ghidra
 from labview_vi_to_ghidra import vi_dispatch
-from labview_vi_to_ghidra.toolchain import acquire_job,ghidra_backend,resolve_ghidra_installation
-PACKAGE_DIR=Path(labview_vi_to_ghidra.__file__).resolve().parent
+from labview_vi_to_ghidra.toolchain import (
+ GHIDRA_SCRIPT_DIRECTORY,acquire_job,ghidra_backend,resolve_ghidra_installation,
+ snapshot_ghidra_scripts,
+)
 
 def digest(data):return hashlib.sha256(data).hexdigest()
 
@@ -41,12 +42,8 @@ def prepare(output,backend):
  blob_path=output/'records.bin';blob_path.write_bytes(blob)
  metadata=dict(schema=1,vi='synthetic.vi',relocation_plan=str(plan_path),sources={resources[1]['path']:resources[1]['sha256']},blob=str(blob_path),blob_sha256=digest(blob),records=[dict(kind='synthetic',key='state_fixture',offset=0,size=len(blob))],fields=[dict(name='Example',offset=0,size=1,type='NumUInt8',comment='Generated test field')],offsets=[dict(name='Example',offset=0,source='Generated fixture')])
  (output/'metadata.json').write_text(json.dumps(metadata,indent=2))
- scripts=output/'scripts';scripts.mkdir();names={}
- source=PACKAGE_DIR
- for name in ['ImportLabVIEW13','RecoverVIStateDispatch','ImportVIMetadata','ValidateExportLabVIEW13']:
-  path=source/(name+'.java');content=path.read_text();compiled=name+'_'+digest(path.read_bytes())[:12]
-  (scripts/(compiled+'.java')).write_text(content.replace('public class '+name+' ','public class '+compiled+' '))
-  names[name]=compiled+'.java'
+ scripts=output/'scripts'
+ names=snapshot_ghidra_scripts(scripts,[GHIDRA_SCRIPT_DIRECTORY/(name+'.java') for name in ['ImportLabVIEW13','RecoverVIStateDispatch','ImportVIMetadata','ValidateExportLabVIEW13']])
  (output/'source-info.json').write_text(json.dumps({'scripts':{p.name:digest(p.read_bytes()) for p in scripts.iterdir()},'classes':names,'synthetic_code_sha256':plan['source_sha256'],'expected_relocated_sha256':plan['patched_sha256'],'states':3},indent=2))
  shutil.copy2(__file__,output/'runner.py')
 

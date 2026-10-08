@@ -23,11 +23,8 @@ vi-to-ghidra = "labview_vi_to_ghidra.vi_to_ghidra:main"
 vi-state-views = "labview_vi_to_ghidra.vi_state_views:main"
 vi-runtime-map = "labview_vi_to_ghidra.recover_callbacks:main"
 
-[tool.setuptools]
-packages = ["labview_vi_to_ghidra"]
-
-[tool.setuptools.package-dir]
-labview_vi_to_ghidra = "."
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.package-data]
-labview_vi_to_ghidra = ["*.java"]
+labview_vi_to_ghidra = ["ghidra/*.java"]
