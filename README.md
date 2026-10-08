@@ -1,30 +1,28 @@
 # LabVIEW to Ghidra
 
-Tools for analyzing LabVIEW files in Ghidra. The current converter creates a
-Ghidra project from one compiled LabVIEW VI. It decodes the VI,
-restores supported relocations and callbacks, imports saved metadata, and
-verifies the project after saving and exporting it as a portable GZF file.
-Analysis is static. The input VI and LabVIEW runtime are read as files.
+Convert a compiled LabVIEW VI into a Ghidra project for static analysis. The
+converter restores supported relocations and callbacks, imports saved metadata,
+and checks the project after saving and exporting it as a portable GZF file.
+It reads the VI and runtime as files without executing them.
 
 ## Supported profile
 
-- LabVIEW **13.0.0**, compiled **32-bit x86** code.
-- VICD code version **0x13008000**.
-- LabVIEW runtime **13.0.0.4046**, `lvrt.dll` SHA-256
+- LabVIEW 13.0.0, 32-bit x86, VICD code version `0x13008000`.
+- Runtime 13.0.0.4046, with `lvrt.dll` SHA-256
   `2dcb88ecdec6bac366530cb28fc760060a13def9da72ffb7ed2d35985101e74e`.
-- Python 3.10 or later on Linux; tested with Python 3.12.
-- Ghidra 12.1.3 and 12.1.4 are the tested versions. Generated projects record
-  the Ghidra version and processor-language definitions. Opening a project
-  with an older processor-language version may require regeneration.
+- Linux with Python 3.10 or later. CI tests Python 3.10 through 3.14.
+- Ghidra 12.1.3 and 12.1.4. Projects record the Ghidra version and processor
+  definitions; an older installation may require regenerating the project.
 
 The input must be an individual RSRC VI with a supported compiled code section.
-Other profiles are rejected. Obtain the supported runtime separately.
+Other profiles are rejected. Supply the runtime separately. Whole projects and
+recursive SubVI imports are outside the current scope.
 
-## Install
+## Install and convert
 
-Install Ghidra and configure its Java runtime using the
-[official installation instructions for Ghidra 12.1.4](https://github.com/NationalSecurityAgency/ghidra/blob/Ghidra_12.1.4_build/README.md#install).
-Then install this package in a Python virtual environment:
+Install Ghidra and Java using the
+[Ghidra 12.1.4 installation instructions](https://github.com/NationalSecurityAgency/ghidra/blob/Ghidra_12.1.4_build/README.md#install).
+Then install the converter:
 
 ```sh
 git clone https://github.com/fakuivanai/labview-to-ghidra.git
@@ -34,23 +32,15 @@ python3 -m venv .venv
 python -m pip install .
 ```
 
-The decoder dependency is pinned to
-[pylabview commit 5f20e23](https://github.com/mefistotelis/pylabview/tree/5f20e23de6a386021eb955c825cc43d221f09ff1).
-Installation needs Git and access to that repository. Capstone, pefile and Pillow
-versions are pinned in `pyproject.toml`.
+Installation needs Git and access to the pinned
+[pylabview dependency](https://github.com/mefistotelis/pylabview/tree/5f20e23de6a386021eb955c825cc43d221f09ff1).
+Other dependency versions are in `pyproject.toml`.
 
-## Convert a VI
-
-First derive a callback map from the supported runtime. This inspects the DLL
-without loading it:
+Derive a callback map from the runtime, then convert into a new or empty output
+directory:
 
 ```sh
 vi-runtime-map --runtime /path/to/lvrt.dll --output /path/to/runtime-map.json
-```
-
-Then generate a project in a new or empty output directory:
-
-```sh
 vi-to-ghidra /path/to/example.vi \
   --runtime /path/to/lvrt.dll \
   --runtime-map /path/to/runtime-map.json \
@@ -59,161 +49,100 @@ vi-to-ghidra /path/to/example.vi \
 ```
 
 `GHIDRA_HOME` or `analyzeHeadless` on `PATH` can supply the Ghidra installation.
-The Flatpak app `org.ghidra_sre.Ghidra` is an alternative with `--ghidra flatpak`.
+The Flatpak app `org.ghidra_sre.Ghidra` works with `--ghidra flatpak`.
 `python -m labview_vi_to_ghidra` runs the same converter.
 
-Open `project/VIAnalysis.gpr` together with its `.rep` directory, or import
-`analysis.gzf` into another Ghidra project. Keep the whole output directory if
-using the companion state-view command or reproducing the analysis.
+Open `project/VIAnalysis.gpr` with its `.rep` directory, or import `analysis.gzf`
+into another Ghidra project. Retain the whole output directory for state views
+and reproduction. It includes plans, source snapshots, commands, hashes and
+stage audits. A successful conversion writes `result.json`; a failed stage
+exits nonzero and writes `FAILED.json` and logs. Analysis runs at low priority
+on one CPU core and refuses concurrent converter or state-view jobs.
 
-`--embed-vi` also embeds an exact copy of the input VI in the Ghidra project.
-The default omits that copy. `result.json` and `plan.json` record the choice in
-`original_vi_embedded` and retain the input SHA-256 in either mode.
+- `--embed-vi` adds an exact copy of the input VI to the project. The default
+  omits it. Both modes record the input hash and the embedding choice.
+- `--prepare-only` validates and writes plans without starting Ghidra.
+- `--allow-unresolved` permits unresolved relocations, marked in reports and
+  bookmarks. Otherwise they stop conversion.
 
-`--prepare-only` decodes the VI and writes validated plans without starting
-Ghidra. An unresolved relocation stops conversion by default.
-`--allow-unresolved` explicitly permits a project with unresolved references
-marked in its report and bookmarks. It does not resolve them.
+## What the project preserves
 
-A successful conversion writes `result.json`. A failed stage exits nonzero and
-writes `FAILED.json` and stage logs. Existing nonempty outputs are refused.
-Linux analysis runs at low priority on one available CPU core. Concurrent
-converter/state-view jobs are refused while another job is running.
+Ghidra receives relocated native code, recognized callbacks, verified symbolic
+runtime references and available decompiler output. Read-only, non-executable blocks at
+artificial addresses hold decoded VI XML and available front-panel XML. Labels,
+defaults, control UIDs, connector numbers and saved SubVI link slots remain
+searchable metadata.
 
-## Preserved information
+Supported native data-space fields appear under `/LabVIEW/VI_metadata` and
+`/LabVIEW/Recorded_facts` in the Data Type Manager. Layouts must agree with every
+available saved offset anchor. The supported initialization record can supply
+anchors for VIs without DCO records. Handles and unknown internals remain
+opaque. Saving and GZF reimport check native bytes, resource blocks, permissions,
+metadata, types, annotations and supported dispatcher tables.
 
-The Ghidra project contains relocated native code, recognized callback names,
-verified runtime targets and decompiler output where available. It embeds
-decoded VI XML and available front-panel XML in read-only, non-executable blocks
-at clearly marked artificial addresses. `--embed-vi` adds an `Original_VI` block.
+The analysis cannot reconstruct a complete VI. With `--embed-vi`, the
+`Original_VI` block holds the unchanged input bytes, including undecoded resources.
+Exporting that block recovers the original file; analysis edits do not update it.
+It is useful when moving a GZF without the separate VI or revisiting the file
+with a future decoder. It does not improve decompilation by itself.
 
-The imported code and types form an analysis view and cannot currently
-reconstruct a complete VI. The optional `Original_VI` block preserves the exact
-input bytes, including resources that have not been decoded or mapped into
-Ghidra. It makes the source available when moving a GZF and allows future
-decoders to revisit it. Exporting that block recovers the original file; edits
-to the analysis view do not update it. The archived VI is reference data and
-does not run or improve decompilation by itself.
+Saved defaults are recorded values, and saved SubVI links do not identify live
+instances. Timestamps occupy 16 opaque native bytes and extended floats occupy
+10. Unsigned 64-bit ring values above Java's signed-long range remain facts
+without enum import. Unsupported types or missing anchors can prevent layout
+recovery while explicit metadata remains available. Some calls and control
+writes lack verified native bindings. Source and diagrams removed before
+distribution cannot be recovered from the compiled file.
 
-If you retain the original VI separately, the embedded copy is a convenience.
-A Ghidra project generated with `--embed-vi` carries the complete input file,
-including any data stored in it. Both modes retain decoded labels, defaults
-and other metadata.
+## State views
 
-Saved type descriptors, defaults, labels, control UIDs, connector numbers and
-SubVI link slots are searchable metadata. Supported native data-space fields
-are available in the Data Type Manager under `/LabVIEW/VI_metadata` and
-`/LabVIEW/Recorded_facts`. Computed packed layouts require agreement with every
-available DCO offset anchor. VIs without DCO records can use the narrowly
-supported initialization record when three independent offset/type-map pairs
-and their table shapes agree. Handles and unknown internals remain opaque.
-
-Plans, relocation records, exact commands, source snapshots, SHA-256 manifests
-and stage audits accompany the project. Reopening and GZF reimport verify
-native bytes, embedded resource archives and their permissions, imported
-metadata, types, annotations and supported dispatcher state tables.
-
-Saved defaults are recorded values, not current runtime memory. Saved SubVI
-slots identify recorded links, not proven runtime instances. The importer does
-not invent native callback prototypes or initialize a runtime data space.
-
-## Large state-machine VIs
-
-The supported return-dispatch emitter receives original state-index labels,
-table data, computed-branch recovery and an instruction-based RunProc body.
-The decompiler can time out on the complete function. Export smaller views:
+Complete decompilation of large state machines can time out. Export smaller
+views from a converted project:
 
 ```sh
 vi-state-views /path/to/analysis/plan.json --states 12,13 --ghidra /path/to/ghidra
 ```
 
-Omit `--states` for a small sample, or use `--states all` for every entry.
-Each view has assembly output and, when decompilation succeeds, a paired C file.
-These are analysis fragments, not separate native functions. Unknown runtime
-prototypes can hide arguments in the C output; consult the assembly. Use
-`LV_state_NNNN` labels for original state indices because displayed switch-case
-numbers can differ.
+Omit `--states` for a small sample or use `--states all`. Each fragment includes
+assembly and, when decompilation succeeds, C output. These fragments are parts
+of the original function. Unknown runtime prototypes can hide arguments in C;
+consult the assembly. `LV_state_NNNN` labels retain original state indices,
+which can differ from the decompiler's displayed switch-case numbers.
 
-## Tests
+## Development
 
-The public tests generate their XML and native-byte fixtures. They need no
-external application or original VI collection:
+Python sources and packaged Ghidra scripts are in `src/labview_vi_to_ghidra/`.
+Unit tests generate their own XML and native-byte fixtures. Install the package
+before running them, so tests use the installed code:
 
 ```sh
+python -m pip install .
 python -m unittest discover -s tests -v
-```
-
-A separate Ghidra check verifies original-resource preservation through GZF
-export/reimport and requires corrupted, missing or incorrectly protected
-archives to be rejected:
-
-```sh
-python tests/integration/check_resource_archives.py \
-  --ghidra /path/to/ghidra --output /path/to/new-test-output
-```
-
-A second synthetic Ghidra check verifies opaque timestamp/extended-float
-extents and signed/wider ring values after saving and GZF reimport:
-
-```sh
-python tests/integration/check_facts.py \
-  --ghidra /path/to/ghidra --output /path/to/new-facts-output
-```
-
-A three-state fixture verifies default fragment selection and checks that
-exporting state views preserves the saved program:
-
-```sh
-python tests/integration/check_state_views.py \
-  --ghidra /path/to/ghidra --output /path/to/new-state-output
-```
-
-The checks and their coverage are recorded in [VALIDATION.md](VALIDATION.md).
-
-## Contribute and build
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks and fixture
-guidance. The command-line tools are the documented interface. Python modules
-and JSON schemas are experimental.
-
-To build a wheel and source distribution from the repository root:
-
-```sh
 python -m pip install build
 python -m build
+python tools/check_distribution.py
 ```
 
-The distributions are written to `dist/`. Build dependencies can change within
-the constraints in `pyproject.toml`; byte-identical distribution builds are not
-currently guaranteed.
+The distribution check compares packaged scripts and license notices with the
+source tree. Ghidra checks cover resource blocks, recorded facts and state
+views. Each run needs a separate, empty output directory:
 
-## Remaining boundaries
+```sh
+python tests/integration/check_resource_archives.py --ghidra /path/to/ghidra --output /path/to/archive-check
+python tests/integration/check_facts.py --ghidra /path/to/ghidra --output /path/to/facts-check
+python tests/integration/check_state_views.py --ghidra /path/to/ghidra --output /path/to/state-check
+```
 
-Supported timestamps occupy 16 opaque native bytes; extended floats occupy 10.
-Their internal representation remains opaque. Compact signed/wider ring values
-follow the pinned decoder's big-endian heap convention. Unsigned 64-bit values
-above Java's signed-long range remain decoded facts without enum import.
+Keep changes within the documented profile. Add generated regression fixtures
+for decoding, relocation and layout changes. New layout rules need independent
+saved offset anchors or equivalent format evidence. Cite pinned sources beside
+adapted code, preserve license notices, and run the relevant Ghidra check when
+changing imports or state views. Record the tested Ghidra version. The CLI is
+the documented interface; Python modules and JSON schemas are experimental.
 
-Some unsupported type encodings and missing offset anchors leave an anchored
-layout unavailable. Explicit metadata remains preserved. Use `--embed-vi` to
-retain the complete original VI inside the project.
-Some control writes have no unique verified native call frame. Some relocated
-calls can remain undisassembled. Complete large-function decompilation, native
-ABI recovery and dynamic instance bindings remain separate analysis tasks.
+## License and security
 
-This package imports individual VIs. It does not reconstruct project-wide
-execution or recursively import other VIs. Compiled files cannot supply source
-or diagrams removed before distribution.
-
-## Security
-
-Use the private reporting form linked in [SECURITY.md](SECURITY.md) for suspected
-vulnerabilities.
-
-## License and provenance
-
-This repository's code is MIT licensed. It uses
-[pylabview](https://github.com/mefistotelis/pylabview), also MIT licensed, for
-RSRC decoding. Decoder conventions adapted here have source permalinks beside
-the code; the upstream license is in `licenses/pylabview-MIT.txt`.
-Ghidra and the LabVIEW runtime are separate dependencies with their own licenses.
+This code is MIT licensed. Adapted decoder conventions cite their sources;
+the pylabview license is in `licenses/pylabview-MIT.txt`. Ghidra and the LabVIEW
+runtime have separate licenses. Report vulnerabilities through the private
+form in [SECURITY.md](SECURITY.md).

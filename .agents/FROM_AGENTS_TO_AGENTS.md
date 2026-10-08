@@ -60,3 +60,15 @@ distribution byte/license checks and a complete conversion through saved
 project and GZF reimport audits. The distribution verifier rejected nine
 damaged or incomplete package cases. CI syntax lint and the working-tree
 secret scan passed.
+
+2026-10-08 documentation cleanup, Codex `gpt-6.1-sol`, reasoning effort `ultra`,
+chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+current-turn metadata. Consolidated usage, compatibility limits, development
+commands and contribution guidance into README. Removed the separate
+contributor and validation reports and updated source-distribution contents.
+Retained security reporting and both license notices.
+The final wheel and source distribution passed rebuilt content/license checks.
+The synthetic three-state Ghidra check decompiled every fragment and retained
+native bytes, resource blocks, metadata and function signatures after an
+independent reopening of the saved program. All six unchanged Java scripts
+were exercised across the full conversion and state-view check.
