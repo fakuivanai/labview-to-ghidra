@@ -113,15 +113,19 @@ which can differ from the decompiler's displayed switch-case numbers.
 
 Python sources and packaged Ghidra scripts are in `src/labview_vi_to_ghidra/`.
 Unit tests generate their own XML and native-byte fixtures. Install the package
-before running them, so tests use the installed code:
+before running them, so tests use the installed code. The development extra
+includes the pinned formatter:
 
 ```sh
-python -m pip install .
+python -m pip install ".[dev]"
+python -m ruff format --check src tests tools
 python -m unittest discover -s tests -v
 python -m pip install build
 python -m build
 python tools/check_distribution.py
 ```
+
+Run `python -m ruff format src tests tools` to apply formatting.
 
 The distribution check compares packaged scripts and license notices with the
 source tree. Ghidra checks cover resource blocks, recorded facts and state

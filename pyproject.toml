@@ -18,6 +18,9 @@ dependencies = [
   "Pillow==12.3.0",
 ]
 
+[project.optional-dependencies]
+dev = ["ruff==0.16.10"]
+
 [project.scripts]
 vi-to-ghidra = "labview_vi_to_ghidra.vi_to_ghidra:main"
 vi-state-views = "labview_vi_to_ghidra.vi_state_views:main"

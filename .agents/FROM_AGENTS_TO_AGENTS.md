@@ -80,3 +80,10 @@ sources, tests and tools. All 23 syntax trees, including literal values,
 remain identical with Python 3.10 syntax; all seven Java files remain byte
 identical. The installed wheel passed 60 existing tests and all CLI help
 commands. Rebuilt wheel and source-distribution content/license checks passed.
+
+2026-10-09 formatting guard, Codex `gpt-6.1-sol`, reasoning effort `ultra`,
+chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+current-turn metadata. Pinned Ruff in the development extra, added a Python
+formatting check to CI, documented matching development commands and ignored
+the local formatter cache. The format check, actionlint and offline zizmor
+checks passed. Runtime dependency requirements are unchanged.
