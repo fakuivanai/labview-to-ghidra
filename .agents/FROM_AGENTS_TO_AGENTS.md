@@ -4,12 +4,12 @@
 `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Model and effort were resolved from
 current-turn metadata. Prepared a standalone individual-VI converter for the
 explicit LabVIEW 13.0.0 / i386 profile. Added independent synthetic fixtures,
-investigated unsupported native extents and sparse ring encodings, and strengthened source-resource preservation
-checks. Retained input resources and analysis provenance remain separate from
-runtime-state claims. Validated 40 public unit tests, three fresh VI conversions,
+investigated unsupported native extents and sparse ring encodings, and
+strengthened source-resource preservation checks. Retained input resources and
+analysis provenance remain separate from runtime-state claims. Validated 40 public unit tests, three fresh VI conversions,
 and synthetic Ghidra resource, facts and state-export checks. Validation and
-remaining limits are documented in README and VALIDATION.md. Prepared and committed a local
-repository; publication remains deferred at the user's request.
+remaining limits are documented in README and VALIDATION.md. Prepared and
+committed a local repository; publication remains deferred at the user's request.
 
 2026-10-07 follow-up, Codex `gpt-6.1-sol`, reasoning effort `ultra`, chat
 `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from this turn's
@@ -87,3 +87,13 @@ current-turn metadata. Pinned Ruff in the development extra, added a Python
 formatting check to CI, documented matching development commands and ignored
 the local formatter cache. The format check, actionlint and offline zizmor
 checks passed. Runtime dependency requirements are unchanged.
+
+2026-10-09 Java formatting, Codex `gpt-6.1-sol`, reasoning effort `ultra`,
+chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+current-turn metadata. Applied google-java-format 1.37.0 defaults to all seven
+Java sources, including the integration helper. Before and after compilation
+with JDK 21 and debug metadata disabled produced identical class bytes.
+Preserved Ghidra categories and class names. All 60 installed-wheel unit tests,
+distribution checks and the three public synthetic Ghidra integration checks
+passed. The checks exercise every Java script, saved projects, GZF reimports,
+resource corruption, recorded types and all three synthetic state views.
