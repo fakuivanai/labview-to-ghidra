@@ -32,6 +32,9 @@ jobs:
           python -m pip check
       - name: Check Python formatting
         run: python -m ruff format --check src tests tools
+      - name: Check Java formatting
+        if: matrix.python-version == '3.12'
+        run: python tools/format_java.py --check --java "${JAVA_HOME_21_X64:?}/bin/java"
       - name: Run synthetic unit tests
         run: python -m unittest discover -s tests -v
       - name: Build wheel and source distribution

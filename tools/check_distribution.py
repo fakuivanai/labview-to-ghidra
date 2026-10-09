@@ -70,7 +70,7 @@ def read_tar_file(archive, path):
         return file.read()
 
 
-def verify_sdist(path, java, licenses, tests, checker):
+def verify_sdist(path, java, licenses, tests, tools):
     with tarfile.open(path, "r:gz") as archive:
         names = archive.getnames()
         roots = {name.split("/", 1)[0] for name in names}
@@ -99,11 +99,21 @@ def verify_sdist(path, java, licenses, tests, checker):
             actual_tests, expected_tests, "Source distribution synthetic tests"
         )
 
+        expected_tools = {f"tools/{name}" for name in tools}
+        actual_tools = {
+            name
+            for name in relative_files
+            if name.startswith("tools/") and Path(name).suffix == ".py"
+        }
+        require_equal(
+            actual_tools, expected_tools, "Source distribution development tools"
+        )
+
         expected = {
             **{f"{java_prefix}ghidra/{name}": data for name, data in java.items()},
             **licenses,
             **{f"tests/{name}": data for name, data in tests.items()},
-            "tools/check_distribution.py": checker,
+            **{f"tools/{name}": data for name, data in tools.items()},
         }
         for name, data in expected.items():
             verify_bytes(
@@ -122,9 +132,9 @@ def verify_distribution(directory, source):
     if not java or not tests:
         raise ValueError("Source Java resources and synthetic tests must be present")
     licenses = {name: (source / name).read_bytes() for name in LICENSE_FILES}
-    checker = (source / "tools/check_distribution.py").read_bytes()
+    tools = source_files(source / "tools", {".py"})
     verify_wheel(wheels[0], java, licenses)
-    verify_sdist(archives[0], java, licenses, tests, checker)
+    verify_sdist(archives[0], java, licenses, tests, tools)
     return len(java), len(tests)
 
 

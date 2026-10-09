@@ -97,3 +97,16 @@ Preserved Ghidra categories and class names. All 60 installed-wheel unit tests,
 distribution checks and the three public synthetic Ghidra integration checks
 passed. The checks exercise every Java script, saved projects, GZF reimports,
 resource corruption, recorded types and all three synthetic state views.
+
+2026-10-09 Java formatting guard, Codex `gpt-6.1-sol`, reasoning effort `ultra`,
+chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+current-turn metadata. Added a standard-library formatter driver with a pinned
+release and SHA-256 check. It caches the verified jar outside the repository
+and supports checking or applying the default style. CI checks Java formatting
+with its existing JDK 21 installation. Documented the matching commands and
+aligned EditorConfig indentation with both formatters. Source-distribution
+verification now checks every development tool's presence and exact bytes.
+Reviewed all 41 files, including 24 Python and seven Java sources. Ruff,
+actionlint, offline zizmor, syntax, whitespace and package-content checks pass.
+The verifier rejects omitted or changed tool sources. Formatter cache, digest,
+missing-Java and command-argument checks pass.

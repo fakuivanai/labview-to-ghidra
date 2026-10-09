@@ -68,10 +68,10 @@ on one CPU core and refuses concurrent converter or state-view jobs.
 ## What the project preserves
 
 Ghidra receives relocated native code, recognized callbacks, verified symbolic
-runtime references and available decompiler output. Read-only, non-executable blocks at
-artificial addresses hold decoded VI XML and available front-panel XML. Labels,
-defaults, control UIDs, connector numbers and saved SubVI link slots remain
-searchable metadata.
+runtime references and available decompiler output. Read-only, non-executable
+blocks at artificial addresses hold decoded VI XML and available front-panel
+XML. Labels, defaults, control UIDs, connector numbers and saved SubVI link slots
+remain searchable metadata.
 
 Supported native data-space fields appear under `/LabVIEW/VI_metadata` and
 `/LabVIEW/Recorded_facts` in the Data Type Manager. Layouts must agree with every
@@ -81,10 +81,11 @@ opaque. Saving and GZF reimport check native bytes, resource blocks, permissions
 metadata, types, annotations and supported dispatcher tables.
 
 The analysis cannot reconstruct a complete VI. With `--embed-vi`, the
-`Original_VI` block holds the unchanged input bytes, including undecoded resources.
-Exporting that block recovers the original file; analysis edits do not update it.
-It is useful when moving a GZF without the separate VI or revisiting the file
-with a future decoder. It does not improve decompilation by itself.
+`Original_VI` block holds the unchanged input bytes, including undecoded
+resources. Exporting that block recovers the original file; analysis edits do
+not update it. It is useful when moving a GZF without the separate VI or
+revisiting the file with a future decoder. It does not improve decompilation by
+itself.
 
 Saved defaults are recorded values, and saved SubVI links do not identify live
 instances. Timestamps occupy 16 opaque native bytes and extended floats occupy
@@ -114,27 +115,38 @@ which can differ from the decompiler's displayed switch-case numbers.
 Python sources and packaged Ghidra scripts are in `src/labview_vi_to_ghidra/`.
 Unit tests generate their own XML and native-byte fixtures. Install the package
 before running them, so tests use the installed code. The development extra
-includes the pinned formatter:
+includes the pinned Python formatter:
 
 ```sh
 python -m pip install ".[dev]"
 python -m ruff format --check src tests tools
+python tools/format_java.py --check
 python -m unittest discover -s tests -v
 python -m pip install build
 python -m build
 python tools/check_distribution.py
 ```
 
-Run `python -m ruff format src tests tools` to apply formatting.
+Run `python -m ruff format src tests tools` to apply Python formatting and
+`python tools/format_java.py` to apply standard Java formatting. The Java
+formatter requires JDK 21 and uses `JAVA_HOME` or `java` on `PATH`. It downloads
+the verified pinned google-java-format jar into the user cache. Use `--jar`
+with the same pinned jar or `--java` to select the Java executable.
 
 The distribution check compares packaged scripts and license notices with the
 source tree. Ghidra checks cover resource blocks, recorded facts and state
 views. Each run needs a separate, empty output directory:
 
 ```sh
-python tests/integration/check_resource_archives.py --ghidra /path/to/ghidra --output /path/to/archive-check
-python tests/integration/check_facts.py --ghidra /path/to/ghidra --output /path/to/facts-check
-python tests/integration/check_state_views.py --ghidra /path/to/ghidra --output /path/to/state-check
+python tests/integration/check_resource_archives.py \
+  --ghidra /path/to/ghidra \
+  --output /path/to/archive-check
+python tests/integration/check_facts.py \
+  --ghidra /path/to/ghidra \
+  --output /path/to/facts-check
+python tests/integration/check_state_views.py \
+  --ghidra /path/to/ghidra \
+  --output /path/to/state-check
 ```
 
 Keep changes within the documented profile. Add generated regression fixtures
