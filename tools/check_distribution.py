@@ -34,22 +34,23 @@ def verify_bytes(read_file, path, expected):
 def verify_license_metadata(data):
     metadata = BytesParser().parsebytes(data)
     require_equal(metadata["License-Expression"], "MIT", "License expression")
-    require_equal(set(metadata.get_all("License-File", [])), set(LICENSE_FILES), "License notices")
+    require_equal(
+        set(metadata.get_all("License-File", [])), set(LICENSE_FILES), "License notices"
+    )
 
 
 def verify_wheel(path, java, licenses):
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         expected_java = {f"{PACKAGE}/ghidra/{name}" for name in java}
-        actual_java = {
-            name for name in names
-            if name.endswith(".java")
-        }
+        actual_java = {name for name in names if name.endswith(".java")}
         require_equal(actual_java, expected_java, "Wheel Java resources")
         for name, data in java.items():
             verify_bytes(archive.read, f"{PACKAGE}/ghidra/{name}", data)
 
-        metadata_paths = [name for name in names if name.endswith(".dist-info/METADATA")]
+        metadata_paths = [
+            name for name in names if name.endswith(".dist-info/METADATA")
+        ]
         require_equal(len(metadata_paths), 1, "Wheel metadata file count")
         metadata_path = metadata_paths[0]
         verify_license_metadata(archive.read(metadata_path))
@@ -77,21 +78,26 @@ def verify_sdist(path, java, licenses, tests, checker):
         root = roots.pop()
         relative_files = {
             member.name.removeprefix(root + "/")
-            for member in archive.getmembers() if member.isfile()
+            for member in archive.getmembers()
+            if member.isfile()
         }
         java_prefix = f"src/{PACKAGE}/"
         expected_java = {f"{java_prefix}ghidra/{name}" for name in java}
         actual_java = {
-            name for name in relative_files
+            name
+            for name in relative_files
             if name.endswith(".java") and not name.startswith("tests/")
         }
         require_equal(actual_java, expected_java, "Source distribution Java resources")
         expected_tests = {f"tests/{name}" for name in tests}
         actual_tests = {
-            name for name in relative_files
+            name
+            for name in relative_files
             if name.startswith("tests/") and Path(name).suffix in {".py", ".java"}
         }
-        require_equal(actual_tests, expected_tests, "Source distribution synthetic tests")
+        require_equal(
+            actual_tests, expected_tests, "Source distribution synthetic tests"
+        )
 
         expected = {
             **{f"{java_prefix}ghidra/{name}": data for name, data in java.items()},
@@ -100,7 +106,9 @@ def verify_sdist(path, java, licenses, tests, checker):
             "tools/check_distribution.py": checker,
         }
         for name, data in expected.items():
-            verify_bytes(lambda item: read_tar_file(archive, item), f"{root}/{name}", data)
+            verify_bytes(
+                lambda item: read_tar_file(archive, item), f"{root}/{name}", data
+            )
         verify_license_metadata(read_tar_file(archive, f"{root}/PKG-INFO"))
 
 
@@ -123,12 +131,18 @@ def verify_distribution(directory, source):
 def main():
     source = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dist", type=Path, default=source / "dist",
-                        help="directory with one wheel and one source distribution")
+    parser.add_argument(
+        "--dist",
+        type=Path,
+        default=source / "dist",
+        help="directory with one wheel and one source distribution",
+    )
     args = parser.parse_args()
     java_count, test_count = verify_distribution(args.dist, source)
-    print(f"Verified {java_count} Java resources, {test_count} synthetic test sources "
-          "and both license notices in the distributions")
+    print(
+        f"Verified {java_count} Java resources, {test_count} synthetic test sources "
+        "and both license notices in the distributions"
+    )
 
 
 if __name__ == "__main__":

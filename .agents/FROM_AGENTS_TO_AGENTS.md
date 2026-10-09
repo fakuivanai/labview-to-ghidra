@@ -72,3 +72,11 @@ The synthetic three-state Ghidra check decompiled every fragment and retained
 native bytes, resource blocks, metadata and function signatures after an
 independent reopening of the saved program. All six unchanged Java scripts
 were exercised across the full conversion and state-view check.
+
+2026-10-09 Python formatting, Codex `gpt-6.1-sol`, reasoning effort `ultra`,
+chat `01a117e4-fa80-7de3-b0cd-31000565e3e4`. Resolved model and effort from
+current-turn metadata. Applied Ruff 0.16.10 standard formatting to Python
+sources, tests and tools. All 23 syntax trees, including literal values,
+remain identical with Python 3.10 syntax; all seven Java files remain byte
+identical. The installed wheel passed 60 existing tests and all CLI help
+commands. Rebuilt wheel and source-distribution content/license checks passed.

@@ -1,4 +1,5 @@
 """Small dispatcher selection and saved Ghidra installation regressions."""
+
 from pathlib import Path
 import os
 import tempfile
@@ -24,7 +25,10 @@ class StateSelectionTests(unittest.TestCase):
         self.assertEqual(select_states(3, "all"), [0, 1, 2])
         self.assertEqual(select_states(3, "2,0"), [2, 0])
         for count, selection in ((0, "sample"), (3, "3"), (3, "-1"), (3, "")):
-            with self.subTest(count=count, selection=selection), self.assertRaises(ValueError):
+            with (
+                self.subTest(count=count, selection=selection),
+                self.assertRaises(ValueError),
+            ):
                 select_states(count, selection)
 
 
@@ -37,8 +41,12 @@ class SavedBackendTests(unittest.TestCase):
             launcher = home / "support/analyzeHeadless"
             launcher.write_text("test launcher")
             (home / "Ghidra/Processors/x86/data/languages").mkdir(parents=True)
-            (home / "Ghidra/application.properties").write_text("application.version=test-version\n")
-            (home / "Ghidra/Processors/x86/data/languages/x86.ldefs").write_text("test-language\n")
+            (home / "Ghidra/application.properties").write_text(
+                "application.version=test-version\n"
+            )
+            (home / "Ghidra/Processors/x86/data/languages/x86.ldefs").write_text(
+                "test-language\n"
+            )
             output = directory / "output"
             output.mkdir()
             other = directory / "other"
@@ -46,7 +54,10 @@ class SavedBackendTests(unittest.TestCase):
             before = Path.cwd()
             try:
                 for explicit in ("ghidra", None):
-                    with self.subTest(explicit=explicit), mock.patch.dict(os.environ, {"GHIDRA_HOME": "ghidra"}):
+                    with (
+                        self.subTest(explicit=explicit),
+                        mock.patch.dict(os.environ, {"GHIDRA_HOME": "ghidra"}),
+                    ):
                         os.chdir(directory)
                         saved = resolve_ghidra_installation(explicit)
                         self.assertEqual(saved, str(home))
@@ -59,9 +70,17 @@ class SavedBackendTests(unittest.TestCase):
                 os.chdir(before)
 
     def test_path_default_is_saved_and_prepare_only_can_skip_missing_backend(self):
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch("shutil.which", return_value="/opt/ghidra/support/analyzeHeadless"):
+        with (
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch(
+                "shutil.which", return_value="/opt/ghidra/support/analyzeHeadless"
+            ),
+        ):
             self.assertEqual(resolve_ghidra_installation(), "/opt/ghidra")
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch("shutil.which", return_value=None):
+        with (
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch("shutil.which", return_value=None),
+        ):
             self.assertIsNone(resolve_ghidra_installation(required=False))
             with self.assertRaises(ValueError):
                 resolve_ghidra_installation()
